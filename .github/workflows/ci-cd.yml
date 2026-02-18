@@ -24,5 +24,5 @@ jobs:
           script: |
             cd ~/app
             git pull
-            kubectl apply -f k8s/deployment.yaml
+            kubectl apply -f k8s/app_deployment.yaml
             kubectl apply -f k8s/service.yaml
