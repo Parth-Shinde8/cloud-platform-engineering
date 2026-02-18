@@ -1,0 +1,15 @@
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# Keys
+*.pem
+
+# Python
+__pycache__/
+*.pyc
+
+# VSCode
+.vscode/
