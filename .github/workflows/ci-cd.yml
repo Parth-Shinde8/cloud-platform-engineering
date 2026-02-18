@@ -1,21 +1,28 @@
-name: Build Docker Image
+name: CI-CD Deploy
 
 on:
   push:
     branches: [ main ]
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Show files
-        run: |
-          pwd
-          ls -R
-
       - name: Build Docker image
-        run: docker build -t myapp:v1 -f ./app/Dockerfile ./app
+        run: docker build -t myapp:v1 ./app
+
+      - name: Deploy to Kubernetes
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/app
+            git pull
+            kubectl apply -f k8s/deployment.yaml
+            kubectl apply -f k8s/service.yaml
