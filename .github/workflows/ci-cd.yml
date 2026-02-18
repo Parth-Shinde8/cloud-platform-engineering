@@ -15,4 +15,4 @@ jobs:
 
     - name: Build Docker image
       run: |
-        docker build -t myapp:v1 ./app
+        docker build -t myapp:v1 -f app/Dockerfile app
