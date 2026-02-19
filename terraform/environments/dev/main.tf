@@ -10,3 +10,7 @@ module "compute" {
   security_group_id = module.network.security_group_id
   key_name          = var.key_name
 }
+
+module "ecr" {
+  source = "../../modules/ecr"
+}
