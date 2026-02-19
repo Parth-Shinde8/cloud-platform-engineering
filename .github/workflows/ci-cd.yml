@@ -2,42 +2,67 @@ name: CI-CD Deploy
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+
+env:
+  AWS_REGION: ap-south-1
+  ECR_REPOSITORY: myapp
+  ECR_REGISTRY: 836479503728.dkr.ecr.ap-south-1.amazonaws.com
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout Code
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      # 2️⃣ Configure AWS Credentials
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-south-1
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to ECR
+      # 3️⃣ Login to Amazon ECR
+      - name: Login to Amazon ECR
         run: |
-          aws ecr get-login-password --region ap-south-1 | \
-          docker login --username AWS --password-stdin 836479503728.dkr.ecr.ap-south-1.amazonaws.com
+          aws ecr get-login-password --region $AWS_REGION | \
+          docker login --username AWS --password-stdin $ECR_REGISTRY
 
+      # 4️⃣ Build Docker Image
       - name: Build Docker Image
         run: |
-          docker build -t myapp:${{ github.sha }} ./app
-          docker tag myapp:${{ github.sha }} 836479503728.dkr.ecr.ap-south-1.amazonaws.com/myapp:${{ github.sha }}
+          docker build -t $ECR_REPOSITORY:${{ github.sha }} ./app
 
-      - name: Push Image to ECR
+      # 5️⃣ Tag Docker Image (SHA + latest)
+      - name: Tag Docker Image
         run: |
-          docker push 836479503728.dkr.ecr.ap-south-1.amazonaws.com/myapp:${{ github.sha }}
+          docker tag $ECR_REPOSITORY:${{ github.sha }} $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+          docker tag $ECR_REPOSITORY:${{ github.sha }} $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-      - name: Deploy to EC2
+      # 6️⃣ Push Images to ECR
+      - name: Push Docker Images
+        run: |
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      # 7️⃣ Deploy to Kubernetes (on EC2)
+      - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            kubectl set image deployment/myapp myapp=836479503728.dkr.ecr.ap-south-1.amazonaws.com/myapp:${{ github.sha }}
+            aws ecr get-login-password --region $AWS_REGION | \
+            docker login --username AWS --password-stdin $ECR_REGISTRY
+
+            kubectl set image deployment/myapp myapp=$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+
+            kubectl rollout status deployment/myapp
+
+            kubectl get pods
