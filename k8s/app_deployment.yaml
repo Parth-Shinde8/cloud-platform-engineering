@@ -65,8 +65,6 @@ jobs:
             kubectl set image deployment/myapp \
             myapp=836479503728.dkr.ecr.ap-south-1.amazonaws.com/myapp:${{ github.sha }}
 
-            kubectl rollout restart deployment/myapp
-
             kubectl get pods
 
 
