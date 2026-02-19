@@ -4,18 +4,28 @@ metadata:
   name: myapp
 spec:
   replicas: 1
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 0
+
   selector:
     matchLabels:
       app: myapp
+
   template:
     metadata:
       labels:
         app: myapp
+
     spec:
       containers:
       - name: myapp
         image: 836479503728.dkr.ecr.ap-south-1.amazonaws.com/myapp:latest
         imagePullPolicy: Always
+
         ports:
         - containerPort: 5000
 
