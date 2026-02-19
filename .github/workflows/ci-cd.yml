@@ -9,10 +9,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Configure AWS credentials
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -21,21 +21,23 @@ jobs:
 
       - name: Login to ECR
         run: |
-          aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 836479503728.dkr.ecr.ap-south-1.amazonaws.com
+          aws ecr get-login-password --region ap-south-1 | \
+          docker login --username AWS --password-stdin 836479503728.dkr.ecr.ap-south-1.amazonaws.com
 
-      - name: Build Docker image
+      - name: Build Docker Image
         run: |
-          docker build -t 836479503728.dkr.ecr.ap-south-1.amazonaws.com/myapp:${{ github.sha }} ./app
+          docker build -t myapp:${{ github.sha }} ./app
+          docker tag myapp:${{ github.sha }} 836479503728.dkr.ecr.ap-south-1.amazonaws.com/myapp:${{ github.sha }}
 
-      - name: Push Docker image
+      - name: Push Image to ECR
         run: |
           docker push 836479503728.dkr.ecr.ap-south-1.amazonaws.com/myapp:${{ github.sha }}
 
-      - name: Deploy to Kubernetes
+      - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
+          username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             kubectl set image deployment/myapp myapp=836479503728.dkr.ecr.ap-south-1.amazonaws.com/myapp:${{ github.sha }}
