@@ -15,11 +15,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # 2️⃣ Configure AWS
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -27,43 +25,30 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # 3️⃣ Login to ECR (GitHub runner side)
       - name: Login to ECR
         run: |
-          aws ecr get-login-password --region $AWS_REGION | \
-          docker login --username AWS --password-stdin $ECR_REGISTRY
+          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
 
-      # 4️⃣ Build Image
       - name: Build Image
         run: |
           docker build -t $ECR_REPOSITORY:${{ github.sha }} ./app
 
-      # 5️⃣ Tag Image
       - name: Tag Image
         run: |
-          docker tag $ECR_REPOSITORY:${{ github.sha }} \
-          $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+          docker tag $ECR_REPOSITORY:${{ github.sha }} $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
 
-      # 6️⃣ Push Image
       - name: Push Image
         run: |
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
 
-      # 7️⃣ Deploy to EC2 (NO AWS LOGIN HERE)
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
-          script: 
-            script: |
-              export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-
-              echo "Deploying image..."
-
-              kubectl set image deployment/myapp \
-              myapp=836479503728.dkr.ecr.ap-south-1.amazonaws.com/myapp:${{ github.sha }} || true
-
-              echo "Deployment updated successfully"
-
+          script: |
+            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+            echo "Deploying image..."
+            kubectl set image deployment/myapp myapp=836479503728.dkr.ecr.ap-south-1.amazonaws.com/myapp:${{ github.sha }} || true
+            echo "Deployment updated successfully"
