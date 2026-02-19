@@ -58,27 +58,16 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # Set required environment variables
-            export AWS_REGION=ap-south-1
-            export ECR_REGISTRY=836479503728.dkr.ecr.ap-south-1.amazonaws.com
-            export ECR_REPOSITORY=myapp
             export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-            # Login to ECR from EC2
-            aws ecr get-login-password --region ap-south-1 | \
-            docker login --username AWS --password-stdin $ECR_REGISTRY
+            echo "Deploying image with SHA: ${{ github.sha }}"
 
-            echo "Updating deployment with image SHA: ${{ github.sha }}"
-
-            # Update image in deployment
             kubectl set image deployment/myapp \
-            myapp=$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+            myapp=836479503728.dkr.ecr.ap-south-1.amazonaws.com/myapp:${{ github.sha }}
 
-            # Wait for rollout to complete
             kubectl rollout status deployment/myapp
 
-            # Verify new image
             kubectl describe deployment myapp | grep Image
 
-            # Show running pods
             kubectl get pods
+     
