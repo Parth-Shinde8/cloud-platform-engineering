@@ -57,11 +57,15 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            set -e
+
             export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-            echo "Deploying image: 836479503728.dkr.ecr.ap-south-1.amazonaws.com/myapp:${{ github.sha }}"
+            echo "Deploying image..."
 
             kubectl set image deployment/myapp \
             myapp=836479503728.dkr.ecr.ap-south-1.amazonaws.com/myapp:${{ github.sha }}
 
-            kubectl get pods
+            echo "Deployment updated successfully"
+
+            exit 0
